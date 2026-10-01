@@ -1,8 +1,14 @@
-# Ghost Mode 👻
+# One More Door
+An endless 3D first-person door puzzle for mobile browsers and Android. One shared Three.js game build, packaged offline in Android WebView.
 
-Native Kotlin Android MVP: Usage Access onboarding, local daily usage summary, recent app timeline, simple same-hour 7-day prediction, manual Ghost notification, privacy screen. No internet permission or account.
+## Controls
+Touch: left thumb moves, drag right side to look, OPEN DOOR near a door. Desktop: WASD/arrows to move, mouse to look (click to lock), E/Space to open.
 
-## Build
-Open this folder as an Android Gradle project in Android Studio or a compatible cloud Android build environment. Install JDK 17 and Android SDK 35, then run `gradle :app:assembleDebug`. APK output: `app/build/outputs/apk/debug/app-debug.apk`. Android Studio can install its own Gradle distribution; this archive has no Gradle wrapper.
+## Web
+`cd web && npm ci && npm run dev`. For production: `npm run build`; deploy `web/dist` to any static host. GitHub Actions workflow deploys it to Pages when Pages source is set to GitHub Actions.
 
-Grant Usage Access through Settings when prompted. On Android 13+, allow notifications. Android may limit historical usage/event retention. Prediction needs previous usage history. Notification is manual; no background scheduling in this MVP. Usage durations come from Android's daily UsageStats buckets, so the current day's boundary may vary on some devices.
+## Android
+GitHub Actions builds the web bundle and packages it into the native Android shell. Download `One-More-Door-APK` artifact from the successful run. The `android/` project uses Gradle 8.10.2, JDK 17, Android SDK 35. No Gradle wrapper is included. Android WebView must support WebGL 2; performance varies by phone. The game works offline once installed.
+
+## Current scope
+Local best score, procedural clues, timed endless rooms, movement, audio, and sharing. No accounts, online leaderboard, monetization code, or remote model. Visuals are procedural 3D, designed to be readable and performant on phones.

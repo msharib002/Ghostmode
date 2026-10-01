@@ -1,15 +1,22 @@
-name: Build Ghost Mode APK
+name: Build Android APK
 on:
   push:
-    branches: [main]
+    branches: [one-more-door]
   workflow_dispatch:
 jobs:
-  build:
+  apk:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci && npm run build
+        working-directory: web
+      - name: Bundle game offline
+        run: cp -r web/dist/. android/app/src/main/assets/
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -18,7 +25,8 @@ jobs:
         with:
           gradle-version: '8.10.2'
       - run: gradle :app:assembleDebug --stacktrace
+        working-directory: android
       - uses: actions/upload-artifact@v4
         with:
-          name: GhostMode-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: One-More-Door-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
