@@ -46,7 +46,7 @@ function signTexture(text, tint='#e9d5b6', size=1024) {
 function labelTexture(text){const c=document.createElement('canvas');c.width=1024;c.height=256;const q=c.getContext('2d');q.fillStyle='#c4bdad';q.font='bold 78px Arial';q.textAlign='center';q.fillText(text,512,155);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;}
 const lampMat=new THREE.MeshBasicMaterial({color:0xffd5a4});
 const doorPositions=[-4.7,0,4.7]; let doors=[]; let roomNo=0, best=Number(localStorage.getItem('omd-best')||0), correct=0, time=0, limit=0, playing=false, last=performance.now(), yaw=0, pitch=0, px=0, pz=5.7, mouseDown=false, touchLook=null, touchPrev=null, padId=null, axis={x:0,y:0}, keys=new Set();
-let lockOpen=false, lockSolved=false, lockTiles=[], lockSeed=[];
+let lockOpen=false, lockSolved=false, lockTiles=[], lockSeed=[], lockRoom=0;
 $('#best').textContent=String(best).padStart(2,'0');
 const puzzles=[
  {q:'I have keys but open no locks. What am I?',a:'PIANO',bad:['MAP','CLOCK']},
@@ -123,7 +123,7 @@ function buildRoom(n){
  const marker=labelTexture('SOLVE THE RIDDLE');plane(group,new THREE.MeshBasicMaterial({map:marker,transparent:true}),0,3.55,-10.25,6.1,1.5);
 }
 function resetCamera(){px=0;pz=6.7;yaw=0;pitch=0;camera.position.set(px,1.65,pz);camera.rotation.set(0,0,0);axis={x:0,y:0};}
-function start(resume=false){roomNo=resume?Math.max(1,Number(localStorage.getItem('omd-room')||1)):1;best=Number(localStorage.getItem('omd-best')||0);playing=true;$('#menu').classList.add('hidden');$('#end').classList.add('hidden');$('#hud').classList.remove('hidden');nextRoom(false);if(resume){time=Math.min(limit,Math.max(1,Number(localStorage.getItem('omd-time')||limit)));}}
+function start(resume=false){roomNo=resume?Math.max(1,Number(localStorage.getItem('omd-room')||1)):1;lockRoom=0;best=Number(localStorage.getItem('omd-best')||0);playing=true;$('#menu').classList.add('hidden');$('#end').classList.add('hidden');$('#hud').classList.remove('hidden');nextRoom(false);if(resume){time=Math.min(limit,Math.max(1,Number(localStorage.getItem('omd-time')||limit)));}}
 function nextRoom(success){if(success){roomNo++;flash('#a7f59b');playTone(640,.11,'triangle');setTimeout(()=>playTone(900,.14,'triangle'),90);}lockOpen=false;lockSolved=false;$('#lock').classList.add('hidden');resetCamera();limit=Math.max(38,76-(roomNo-1)*1.6);time=limit;buildRoom(roomNo);saveProgress();last=performance.now();}
 function end(reason){if(!playing)return;playing=false;lockOpen=false;$('#lock').classList.add('hidden');flash('#fa715f');playTone(160,.35,'sawtooth');const score=roomNo-1;if(score>best){best=score;localStorage.setItem('omd-best',String(best));}$('#final-score').textContent=score;$('#final-best').textContent=best;$('#end-title').innerHTML=reason==='timeout'?'TIME<br>IS UP.':'WRONG<br>DOOR.';$('#end-detail').textContent=reason==='timeout'?'The room swallowed your chance.':'The clue was right there. Try another run.';localStorage.removeItem('omd-room');localStorage.removeItem('omd-time');updateResume();$('#hud').classList.add('hidden');$('#end').classList.remove('hidden');document.exitPointerLock?.();}
 function flash(color){const f=$('#flash');f.style.background=color;f.style.opacity='.47';setTimeout(()=>f.style.opacity='0',50);}
@@ -177,7 +177,7 @@ function renderLock(){const flow=lockFlow(lockTiles);$('#lock-progress').textCon
  $('#lock-grid').innerHTML=lockTiles.map((tile,i)=>`<button class="lock-tile ${flow.reached.has(i)?'powered':''}" data-tile="${i}" aria-label="Rotate circuit tile ${i+1}"><span style="transform:rotate(${tile.rot*90}deg)">${tileSvg(tile.mask)}</span></button>`).join('');
  if(flow.solved&&!lockSolved){lockSolved=true;$('#lock-message').textContent='CIRCUIT COMPLETE · DOOR UNLOCKED';$('#lock-grid').classList.add('solved');playTone(540,.2,'triangle');setTimeout(()=>playTone(810,.3,'triangle'),180);setTimeout(()=>{if(playing&&lockSolved)nextRoom(true);},900);}
 }
-function openLock(){lockOpen=true;lockSolved=false;lockTiles=makeLock(roomNo);lockSeed=lockTiles.map(t=>({...t,mask:[...t.mask]}));$('#lock-grid').classList.remove('solved');$('#lock-room').textContent=String(roomNo).padStart(2,'0');$('#lock-message').textContent='Tap to rotate · 1–9 on keyboard';$('#lock').classList.remove('hidden');document.exitPointerLock?.();playTone(330,.14,'triangle');renderLock();}
+function openLock(){lockOpen=true;lockSolved=false;if(lockRoom!==roomNo){lockRoom=roomNo;lockTiles=makeLock(roomNo);lockSeed=lockTiles.map(t=>({...t,mask:[...t.mask]}));}$('#lock-grid').classList.remove('solved');$('#lock-room').textContent=String(roomNo).padStart(2,'0');$('#lock-message').textContent='Tap to rotate · 1–9 on keyboard';$('#lock').classList.remove('hidden');document.exitPointerLock?.();playTone(330,.14,'triangle');renderLock();}
 function rotateTile(i){if(!lockOpen||lockSolved||!playing||!lockTiles[i])return;lockTiles[i].rot=(lockTiles[i].rot+1)%4;playTone(235+i*21,.075,'triangle',.045);renderLock();}
 $('#lock-grid').addEventListener('click',e=>{const button=e.target.closest('[data-tile]');if(button)rotateTile(Number(button.dataset.tile));});
 $('#lock-reset').onclick=()=>{if(lockSolved)return;lockTiles=lockSeed.map(t=>({...t,mask:[...t.mask]}));renderLock();playTone(170,.1);};
