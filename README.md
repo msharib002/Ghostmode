@@ -1,5 +1,10 @@
 # One More Door
-An endless 3D first-person door puzzle for mobile browsers and Android. One shared Three.js game build, packaged offline in Android WebView.
+
+An endless 3D first-person door puzzle for mobile browsers and Android. Read a riddle, move through the room, and choose one of three answer doors before time runs out. The pace gets faster as you progress.
+
+**[Get the ready-to-play Web + Android bundle on Gumroad](https://sharib25.gumroad.com/l/one-more-door-game)** · $4.99 · Use `DOOR20` for 20% off through October 8, 2026.
+
+The Gumroad bundle includes a browser-ready ZIP and an offline Android APK. This repository also makes the source code public; the purchase supports further development and provides convenient builds. The APK is a debug-signed sideload build, not a Google Play release. Riddles repeat when the current bank is exhausted.
 
 ## Controls
 Touch: left thumb moves, drag right side to look, OPEN DOOR near a door. Desktop: WASD/arrows to move, mouse to look (click to lock), E/Space to open.
