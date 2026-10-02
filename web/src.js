@@ -5,8 +5,10 @@ import '@fontsource/dm-sans/400.css';
 import '@fontsource/dm-sans/700.css';
 import * as THREE from 'three';
 import './style.css';
+import { generatedRiddle } from './riddleBank.js';
 
 const $ = s => document.querySelector(s);
+const MAX_ROOMS=1000;
 const canvas = $('#world');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
@@ -72,17 +74,14 @@ const puzzles=[
  {q:'What has an end but no beginning?',a:'STICK',bad:['CIRCLE','ROAD']},
  {q:'I am tall when young and short when old. What am I?',a:'CANDLE',bad:['MOUNTAIN','LADDER']},
  {q:'What comes once in a minute, twice in a moment, never in a year?',a:'LETTER M',bad:['SECOND','LETTER E']},
- {q:'What is so fragile that speaking its name breaks it?',a:'SILENCE',bad:['ICE','GLASS']}
+ {q:'I can be cracked, made, told, and played. What am I?',a:'JOKE',bad:['GLASS','SONG']}
 ];
 function puzzle(n){
- // Use every riddle once per cycle; late rooms also shorten the clock.
- const cycle=Math.floor((n-1)/puzzles.length), index=(n-1)%puzzles.length;
- const ordered=[...puzzles].sort((a,b)=>hashName(a.a,cycle)-hashName(b.a,cycle));
- const r=ordered[index], choices=[r.a,...r.bad];
- for(let i=choices.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[choices[i],choices[j]]=[choices[j],choices[i]];}
+ const r=n<=puzzles.length?puzzles[n-1]:generatedRiddle(n-puzzles.length-1), choices=[r.a,...r.bad];
+ let seed=(n*2654435761)>>>0;
+ for(let i=choices.length-1;i>0;i--){seed=(seed*1664525+1013904223)>>>0;const j=seed%(i+1);[choices[i],choices[j]]=[choices[j],choices[i]];}
  return {choices,clue:r.q,answer:choices.indexOf(r.a)};
 }
-function hashName(s,cycle){let v=cycle+17;for(const c of s)v=(v*31+c.charCodeAt(0))>>>0;return v;}
 function clearRoom(){for(const obj of [...group.children]) {group.remove(obj);obj.traverse(child=>{if(child.isMesh){if(child.geometry!==geoBox)child.geometry.dispose();if(child.userData.ownedMaterial){child.material.map?.dispose();child.material.dispose();}}});}doors=[];}
 function buildRoom(n){
  clearRoom(); const p=puzzle(n);correct=p.answer;$('#clue').innerHTML=p.clue;$('#room').textContent=String(n).padStart(2,'0');$('#best').textContent=String(best).padStart(2,'0');
@@ -123,9 +122,10 @@ function buildRoom(n){
  const marker=labelTexture('SOLVE THE RIDDLE');plane(group,new THREE.MeshBasicMaterial({map:marker,transparent:true}),0,3.55,-10.25,6.1,1.5);
 }
 function resetCamera(){px=0;pz=6.7;yaw=0;pitch=0;camera.position.set(px,1.65,pz);camera.rotation.set(0,0,0);axis={x:0,y:0};}
-function start(resume=false){roomNo=resume?Math.max(1,Number(localStorage.getItem('omd-room')||1)):1;lockRoom=0;best=Number(localStorage.getItem('omd-best')||0);playing=true;$('#menu').classList.add('hidden');$('#end').classList.add('hidden');$('#hud').classList.remove('hidden');nextRoom(false);if(resume){time=Math.min(limit,Math.max(1,Number(localStorage.getItem('omd-time')||limit)));}}
-function nextRoom(success){if(success){roomNo++;flash('#a7f59b');playTone(640,.11,'triangle');setTimeout(()=>playTone(900,.14,'triangle'),90);}lockOpen=false;lockSolved=false;$('#lock').classList.add('hidden');resetCamera();limit=Math.max(38,76-(roomNo-1)*1.6);time=limit;buildRoom(roomNo);saveProgress();last=performance.now();}
-function end(reason){if(!playing)return;playing=false;lockOpen=false;$('#lock').classList.add('hidden');flash('#fa715f');playTone(160,.35,'sawtooth');const score=roomNo-1;if(score>best){best=score;localStorage.setItem('omd-best',String(best));}$('#final-score').textContent=score;$('#final-best').textContent=best;$('#end-title').innerHTML=reason==='timeout'?'TIME<br>IS UP.':'WRONG<br>DOOR.';$('#end-detail').textContent=reason==='timeout'?'The room swallowed your chance.':'The clue was right there. Try another run.';localStorage.removeItem('omd-room');localStorage.removeItem('omd-time');updateResume();$('#hud').classList.add('hidden');$('#end').classList.remove('hidden');document.exitPointerLock?.();}
+function start(resume=false){roomNo=resume?Math.min(MAX_ROOMS,Math.max(1,Number(localStorage.getItem('omd-room')||1))):1;lockRoom=0;best=Number(localStorage.getItem('omd-best')||0);playing=true;$('#menu').classList.add('hidden');$('#end').classList.add('hidden');$('#hud').classList.remove('hidden');nextRoom(false);if(resume){time=Math.min(limit,Math.max(1,Number(localStorage.getItem('omd-time')||limit)));}}
+function finishGame(){playing=false;lockOpen=false;$('#lock').classList.add('hidden');$('#hud').classList.add('hidden');$('#end').classList.remove('hidden');best=MAX_ROOMS;localStorage.setItem('omd-best',String(best));localStorage.removeItem('omd-room');localStorage.removeItem('omd-time');$('#final-score').textContent=MAX_ROOMS;$('#final-best').textContent=MAX_ROOMS;$('#end-label').textContent='THE FINAL DOOR OPENED';$('#end-title').innerHTML='ALL 1000<br>CLEARED.';$('#end-detail').textContent='You solved every riddle and circuit in the tower.';$('#again').textContent='START A NEW RUN ↗';updateResume();flash('#a7f59b');playTone(880,.55,'triangle');document.exitPointerLock?.();}
+function nextRoom(success){if(success){if(roomNo>=MAX_ROOMS){finishGame();return;}roomNo++;flash('#a7f59b');playTone(640,.11,'triangle');setTimeout(()=>playTone(900,.14,'triangle'),90);}lockOpen=false;lockSolved=false;$('#lock').classList.add('hidden');resetCamera();limit=Math.max(38,76-(roomNo-1)*1.6);time=limit;buildRoom(roomNo);saveProgress();last=performance.now();}
+function end(reason){if(!playing)return;playing=false;lockOpen=false;$('#lock').classList.add('hidden');flash('#fa715f');playTone(160,.35,'sawtooth');const score=roomNo-1;if(score>best){best=score;localStorage.setItem('omd-best',String(best));}$('#final-score').textContent=score;$('#final-best').textContent=best;$('#end-label').textContent='RUN ENDED';$('#end-title').innerHTML=reason==='timeout'?'TIME<br>IS UP.':'WRONG<br>DOOR.';$('#end-detail').textContent=reason==='timeout'?'The room swallowed your chance.':'The clue was right there. Try another run.';localStorage.removeItem('omd-room');localStorage.removeItem('omd-time');updateResume();$('#hud').classList.add('hidden');$('#end').classList.remove('hidden');document.exitPointerLock?.();}
 function flash(color){const f=$('#flash');f.style.background=color;f.style.opacity='.47';setTimeout(()=>f.style.opacity='0',50);}
 let audioCtx;function playTone(f,d,type='sine',volume=.09){if(!settings.sound)return;try{audioCtx ||=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(f,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(50,f*.6),audioCtx.currentTime+d);g.gain.setValueAtTime(volume*settings.soundVolume,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+d);o.connect(g).connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d);}catch{}}
 function nearest(){let bestIdx=-1,dist=99;doors.forEach((d,i)=>{const a=Math.hypot(px-d.position.x,pz-(-8.9));if(a<dist){dist=a;bestIdx=i;}});return dist<2.35?bestIdx:-1;}
